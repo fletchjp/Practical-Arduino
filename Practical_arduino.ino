@@ -17,6 +17,18 @@
 #define signalGreenPin 10          //PWM pin
 #define signalRedPin   9           //PWM pin
 
+/* Pins used to drive the motor */
+#define motorPinA 11                      //connect to A-IA
+#define motorPinB 12                      //connect to A-IB
+#define throttlePin A5                    // Analogue input from Pot
+
+/* Setup Pot to work as throttle */
+#define deadzone 100
+#define throttleRevMin 0
+#define throttleRevMax (512 - deadzone)
+#define throttleFwdMin (512 + deadzone)
+#define throttleFwdMax 1024
+
 /* Setup servo limits */
 #define closedPosition 50      // angle
 #define thrownPosition 90      // angle
@@ -29,8 +41,13 @@
 Servo turnoutServo;
 Servo signalServo;
 
+#include "HCMotor.h"
+/* Create an instance of the library */
+HCMotor HCMotor;
+
 byte turnoutAngle   = closedPosition;
 byte turnoutState   = closedPosition;
+unsigned long turnoutThrowTime;
 byte signalPosition;
 bool turnoutClosed = true;
 bool greenAspect = false;
@@ -123,7 +140,19 @@ void setup() {
   digitalWrite(signalGreenPin, greenAspect);
   digitalWrite(signalRedPin, redAspect);
   digitalWrite(frogRelayPin, turnoutClosed);
-  
+
+  /* Initialise the library */
+  HCMotor.Init();
+
+  /* Attach motor 0 to digital pins. The first parameter specifies the 
+     motor number, the second is the motor type, and the third and forth are the 
+     digital pins that will control the motor */
+  HCMotor.attach(0, DCMOTOR_H_BRIDGE, motorPinA, motorPinB);
+
+  /* Set the duty cycle of the PWM signal in 100uS increments. 
+     Here 100 x 100uS = 1mS duty cycle. */
+  HCMotor.DutyCycle(0, 100);
+
   Serial.begin(9600);
 }
 
@@ -158,5 +187,22 @@ void loop() {
   
   if(digitalRead(throughSensorPin) == LOW && turnoutClosed) signalToProceed();
   if(digitalRead(divergeSensorPin) == LOW && !turnoutClosed) colourSignalDanger(false);
+  
+  int throttleSpeed, Pot;
+
+  Pot = analogRead(throttlePin); // read throttle pin
+  Serial.println(Pot);
+  if (Pot >= throttleRevMin && Pot <= throttleRevMax){
+    HCMotor.Direction(0, REVERSE);
+    throttleSpeed = map(Pot, throttleRevMin, throttleRevMax, 100, 0);
+  } else if (Pot >= throttleFwdMin && Pot <= throttleFwdMax){  
+    HCMotor.Direction(0, FORWARD);
+    throttleSpeed = map(Pot, throttleFwdMin, throttleFwdMax, 0, 100);
+  } else {
+    throttleSpeed = 0;
+  }
+
+  /* Set the on time of the duty cycle to match the position of the throttle. */
+  HCMotor.OnTime(0, throttleSpeed);
 
 }
