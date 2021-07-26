@@ -44,23 +44,27 @@ ServoTurnout turnouts[NUMBER_OF_TURNOUTS] = {
 
 void ServoTurnout::moveServo()
 {
-  moveDelay = millis() + TURNOUT_MOVE_SPEED;
-  if (currentPosition < targetPosition) currentPosition++;
-  if (currentPosition > targetPosition) currentPosition--;
-  servo.write(currentPosition);
-  if (currentPosition == closedPosition) {
-    isClosed = true;
-  }
-  if (currentPosition == thrownPosition) {
-    isClosed = false;
-  }
+  if (currentPosition != targetPosition) { // check that they are not at there taregt position
+    if (millis() > moveDelay) {            // check that enough delay has passed
+      moveDelay = millis() + TURNOUT_MOVE_SPEED;
+      if (currentPosition < targetPosition) currentPosition++;
+      if (currentPosition > targetPosition) currentPosition--;
+      servo.write(currentPosition);
+      if (currentPosition == closedPosition) {
+        isClosed = true;
+      }
+      if (currentPosition == thrownPosition) {
+        isClosed = false;
+      }
 
-  if (linkedTurnout > 0) {
-    if (currentPosition == closedPosition) {
-      turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].closedPosition;
-    }
-    if (currentPosition == thrownPosition) {
-      turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].thrownPosition;
+      if (linkedTurnout > 0) {
+        if (currentPosition == closedPosition) {
+          turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].closedPosition;
+        }
+        if (currentPosition == thrownPosition) {
+          turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].thrownPosition;
+        }
+      }
     }
   }
 }
@@ -68,10 +72,6 @@ void ServoTurnout::moveServo()
 /* Setup servo arrays  */
 int pushButtonPins[NUMBER_OF_PUSH_BUTTONS] = {7, 8, 9, 10}; // enter pin numbers. 1st number is for pushButtonPins[0], 2nd for pushButtonPins[1] etc
 int routeButtonPins[NUMBER_OF_ROUTE_BUTTONS] = {11, 12};    // enter pin numbers. 1st number is for routeButtonPins[0], 2nd for routeButtonPins[1] etc
-
-void throwTurnout(int i){
-  turnouts[i].moveServo();
-}
 
 void setup() {
   Serial.begin(9600);
@@ -108,10 +108,6 @@ void loop() {
   
   /* loop through the turnout servos */
   for (int thisTurnout = 0; thisTurnout < NUMBER_OF_TURNOUTS; thisTurnout++) {
-    if (turnouts[thisTurnout].currentPosition != turnouts[thisTurnout].targetPosition) { // check that they are not at there taregt position
-      if (millis() > turnouts[thisTurnout].moveDelay) {                                  // check that enough delay has passed
-           throwTurnout(thisTurnout);                                                    // call throwTurnout to move the servo 1 degree towards its target
-      }
-    }
+    turnouts[thisTurnout].moveServo();                                                  // move the servo 1 degree towards its target
   }
 }
