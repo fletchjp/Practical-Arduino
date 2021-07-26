@@ -8,17 +8,24 @@ const byte NUMBER_OF_ROUTE_BUTTONS = 2;
 const byte NUMBER_OF_TURNOUTS = 5;
 #define TURNOUT_MOVE_SPEED 30              // [ms] lower number is faster
 
-struct ServoTurnout
+class ServoTurnout
 {
+private:
   int pin;
   int closedPosition;
   int thrownPosition;
   int linkedTurnout;
   Servo servo;
-  int targetPosition;  // renamed from turnoutTarget
-  int currentPosition; // renamed from turnoutPosition
+  int targetPosition;
+  int currentPosition;
   unsigned long moveDelay;
   bool isClosed;
+
+public:
+  ServoTurnout(int pin, int closedPosition, int thrownPosition, int linkedTurnout = -1)
+    : pin(pin), closedPosition(closedPosition), thrownPosition(thrownPosition), linkedTurnout(linkedTurnout)
+  {
+  }
 
   void setup()
   {
@@ -31,6 +38,22 @@ struct ServoTurnout
   }
 
   void moveServo();
+
+  void setClosedTarget()
+  {
+    targetPosition = closedPosition;
+  }
+
+  void setThrownTarget()
+  {
+    targetPosition = thrownPosition;
+  }
+
+  void toggleTarget()
+  {
+    if (isClosed) setThrownTarget(); // set turnout target to thrown if it is closed
+    else          setClosedTarget(); // set turnout target to closed if it is thrown
+  }
 };
 
 // define the turnouts with their pins and end position angles.
@@ -59,10 +82,10 @@ void ServoTurnout::moveServo()
 
       if (linkedTurnout > 0) {
         if (currentPosition == closedPosition) {
-          turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].closedPosition;
+          turnouts[linkedTurnout].setClosedTarget();
         }
         if (currentPosition == thrownPosition) {
-          turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].thrownPosition;
+          turnouts[linkedTurnout].setThrownTarget();
         }
       }
     }
@@ -89,25 +112,23 @@ void setup() {
 void loop() {
   /* loop through all the push buttons */
   for (int i = 0; i < NUMBER_OF_PUSH_BUTTONS; i++){
-    if (digitalRead(pushButtonPins[i]) == LOW){                                           // is push button pressed
-      if (turnouts[i].isClosed)  turnouts[i].targetPosition = turnouts[i].thrownPosition; // set turnout target to thrown if it is closed
-      if (!turnouts[i].isClosed) turnouts[i].targetPosition = turnouts[i].closedPosition; // set turnout target to closed if it is thrown
+    if (digitalRead(pushButtonPins[i]) == LOW){ // is push button pressed
+      turnouts[i].toggleTarget();
     }
   }
   
   /* read route buttons and move turnouts when pressed */
-  if (digitalRead(routeButtonPins[0]) == LOW){                                          // is route button pressed
-    if (!turnouts[0].isClosed) turnouts[0].targetPosition = turnouts[0].closedPosition; // set turnout target to closed if it is thrown
-    if (!turnouts[1].isClosed) turnouts[1].targetPosition = turnouts[1].closedPosition; // set turnout target to closed if it is thrown
+  if (digitalRead(routeButtonPins[0]) == LOW){ // is route button pressed
+    turnouts[0].setClosedTarget(); // set turnout target to closed if it is thrown
+    turnouts[1].setClosedTarget(); // set turnout target to closed if it is thrown
   }
-  if (digitalRead(routeButtonPins[1]) == LOW){                                          // is route button pressed
-    if (turnouts[0].isClosed) turnouts[0].targetPosition = turnouts[0].thrownPosition;  // set turnout target to thrown if it is thrown
-    if (turnouts[1].isClosed) turnouts[1].targetPosition = turnouts[1].thrownPosition;  // set turnout target to thrown if it is thrown
+  if (digitalRead(routeButtonPins[1]) == LOW){ // is route button pressed
+    turnouts[0].setThrownTarget();  // set turnout target to thrown if it is thrown
+    turnouts[1].setThrownTarget();  // set turnout target to thrown if it is thrown
   }
-
   
   /* loop through the turnout servos */
   for (int thisTurnout = 0; thisTurnout < NUMBER_OF_TURNOUTS; thisTurnout++) {
-    turnouts[thisTurnout].moveServo();                                                  // move the servo 1 degree towards its target
+    turnouts[thisTurnout].moveServo();                          // move the servo 1 degree towards its target
   }
 }
