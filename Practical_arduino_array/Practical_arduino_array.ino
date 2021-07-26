@@ -18,6 +18,16 @@ struct ServoTurnout
   int currentPosition; // renamed from turnoutPosition
   unsigned long moveDelay;
   bool isClosed;
+
+  void setup()
+  {
+    targetPosition = closedPosition;       // setup targets as closed positiion
+    currentPosition = closedPosition;      // setup position to closed
+    isClosed = true;                       // setup closed is true
+
+    servo.attach(pin);                     // attach all the turnout servos
+    servo.write(currentPosition);          // write the servos poistions
+  }
 };
 
 // define the turnouts with their pins and end position angles.
@@ -52,12 +62,7 @@ void setup() {
   Serial.begin(9600);
   /* setup all the servos*/
   for (int thisTurnout = 0; thisTurnout < NUMBER_OF_TURNOUTS; thisTurnout++) {
-      turnouts[thisTurnout].targetPosition  = turnouts[thisTurnout].closedPosition; // setup targets as closed positiion
-      turnouts[thisTurnout].currentPosition = turnouts[thisTurnout].closedPosition; // setup position to closed
-      turnouts[thisTurnout].isClosed = true;                                        // setup closed is true
-      
-      turnouts[thisTurnout].servo.attach(turnouts[thisTurnout].pin);                // attach all the turnout servos
-      turnouts[thisTurnout].servo.write(turnouts[thisTurnout].currentPosition);     // write the servos poistions
+      turnouts[thisTurnout].setup();
   }
   
   /* setup all the pushbuttons */
