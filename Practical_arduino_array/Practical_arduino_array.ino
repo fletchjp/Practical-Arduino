@@ -13,6 +13,7 @@ struct ServoTurnout
   int pin;
   int closedPosition;
   int thrownPosition;
+  int linkedTurnout;
   Servo servo;
   int targetPosition;  // renamed from turnoutTarget
   int currentPosition; // renamed from turnoutPosition
@@ -29,19 +30,7 @@ struct ServoTurnout
     servo.write(currentPosition);          // write the servos poistions
   }
 
-  void moveServo()
-  {
-    moveDelay = millis() + TURNOUT_MOVE_SPEED;
-    if (currentPosition < targetPosition) currentPosition++;
-    if (currentPosition > targetPosition) currentPosition--;
-    servo.write(currentPosition);
-    if (currentPosition == closedPosition) {
-      isClosed = true;
-    }
-    if (currentPosition == thrownPosition) {
-      isClosed = false;
-    }
-  }
+  void moveServo();
 };
 
 // define the turnouts with their pins and end position angles.
@@ -49,9 +38,32 @@ ServoTurnout turnouts[NUMBER_OF_TURNOUTS] = {
   {2, 50, 90},
   {3, 80, 150},
   {4, 60, 120},
-  {5, 60, 120},
+  {5, 60, 120, 4},  // Turnout 3 is linked with turnout 4.
   {6, 60, 120}
 };
+
+void ServoTurnout::moveServo()
+{
+  moveDelay = millis() + TURNOUT_MOVE_SPEED;
+  if (currentPosition < targetPosition) currentPosition++;
+  if (currentPosition > targetPosition) currentPosition--;
+  servo.write(currentPosition);
+  if (currentPosition == closedPosition) {
+    isClosed = true;
+  }
+  if (currentPosition == thrownPosition) {
+    isClosed = false;
+  }
+
+  if (linkedTurnout > 0) {
+    if (currentPosition == closedPosition) {
+      turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].closedPosition;
+    }
+    if (currentPosition == thrownPosition) {
+      turnouts[linkedTurnout].targetPosition = turnouts[linkedTurnout].thrownPosition;
+    }
+  }
+}
 
 /* Setup servo arrays  */
 int pushButtonPins[NUMBER_OF_PUSH_BUTTONS] = {7, 8, 9, 10}; // enter pin numbers. 1st number is for pushButtonPins[0], 2nd for pushButtonPins[1] etc
@@ -59,16 +71,6 @@ int routeButtonPins[NUMBER_OF_ROUTE_BUTTONS] = {11, 12};    // enter pin numbers
 
 void throwTurnout(int i){
   turnouts[i].moveServo();
-
-  if (i == 3)
-  {
-    if (turnouts[3].currentPosition == turnouts[3].closedPosition) {
-      turnouts[4].targetPosition = turnouts[4].closedPosition;
-    }
-    if (turnouts[3].currentPosition == turnouts[3].thrownPosition) {
-      turnouts[4].targetPosition = turnouts[4].thrownPosition;
-    }
-  }
 }
 
 void setup() {
