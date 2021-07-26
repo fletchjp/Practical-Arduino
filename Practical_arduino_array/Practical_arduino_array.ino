@@ -28,6 +28,20 @@ struct ServoTurnout
     servo.attach(pin);                     // attach all the turnout servos
     servo.write(currentPosition);          // write the servos poistions
   }
+
+  void moveServo()
+  {
+    moveDelay = millis() + TURNOUT_MOVE_SPEED;
+    if (currentPosition < targetPosition) currentPosition++;
+    if (currentPosition > targetPosition) currentPosition--;
+    servo.write(currentPosition);
+    if (currentPosition == closedPosition) {
+      isClosed = true;
+    }
+    if (currentPosition == thrownPosition) {
+      isClosed = false;
+    }
+  }
 };
 
 // define the turnouts with their pins and end position angles.
@@ -44,17 +58,16 @@ int pushButtonPins[NUMBER_OF_PUSH_BUTTONS] = {7, 8, 9, 10}; // enter pin numbers
 int routeButtonPins[NUMBER_OF_ROUTE_BUTTONS] = {11, 12};    // enter pin numbers. 1st number is for routeButtonPins[0], 2nd for routeButtonPins[1] etc
 
 void throwTurnout(int i){
-  turnouts[i].moveDelay = millis() + TURNOUT_MOVE_SPEED;
-  if (turnouts[i].currentPosition < turnouts[i].targetPosition) turnouts[i].currentPosition++;
-  if (turnouts[i].currentPosition > turnouts[i].targetPosition) turnouts[i].currentPosition--;
-  turnouts[i].servo.write(turnouts[i].currentPosition);
-  if (turnouts[i].currentPosition == turnouts[i].closedPosition) {
-    turnouts[i].isClosed = true;
-    if (i == 3) turnouts[i+1].targetPosition = turnouts[i+1].closedPosition;
-  }
-  if (turnouts[i].currentPosition == turnouts[i].thrownPosition) {
-    turnouts[i].isClosed = false;
-    if (i == 3) turnouts[i+1].targetPosition = turnouts[i+1].thrownPosition;
+  turnouts[i].moveServo();
+
+  if (i == 3)
+  {
+    if (turnouts[3].currentPosition == turnouts[3].closedPosition) {
+      turnouts[4].targetPosition = turnouts[4].closedPosition;
+    }
+    if (turnouts[3].currentPosition == turnouts[3].thrownPosition) {
+      turnouts[4].targetPosition = turnouts[4].thrownPosition;
+    }
   }
 }
 
